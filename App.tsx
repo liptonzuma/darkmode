@@ -1,20 +1,83 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+
+import {
+  useFonts,
+  Poppins_700Bold,
+  Poppins_400Regular,
+  Poppins_600SemiBold,
+} from '@expo-google-fonts/poppins';
+
+import {
+  NavigationContainer,
+  DefaultTheme,
+  DarkTheme,
+  Theme,
+} from '@react-navigation/native';
+import StackNavigator from './src/navigation/StackNavigator';
+import DarkMode from './src/app/utils/darkmode.context';
+import { useEffect, useState } from 'react';
+import { Appearance, useColorScheme } from 'react-native';
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    Poppins_400Regular,
+    Poppins_600SemiBold,
+    Poppins_700Bold,
+  });
+
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [useDeviceSettings, setUseDeviceSettings] = useState(false);
+
+  // Create custom dark theme
+
+  const scheme = useColorScheme(); // this gets the current native appearance of device
+
+  const CustomDarkTheme: Theme = {
+    ...DarkTheme,
+    dark: true,
+    colors: {
+      ...DarkTheme.colors,
+      primary: 'white',
+      background: '#202120',
+      card: '#121212',
+    },
+  };
+
+  useEffect(() => {
+    let subscription: any;
+
+    if (useDeviceSettings) {
+      subscription = Appearance.addChangeListener((scheme) => {
+        // Is dark mode will be true when scheme.colorScheme is equal to 'dark'
+        setIsDarkMode(scheme.colorScheme === 'dark');
+      });
+    }
+
+    // cleanup
+    return () => {
+      if (subscription) {
+        subscription.remove();
+        subscription = null;
+      }
+    };
+  }, [scheme, isDarkMode, useDeviceSettings]);
+
+  if (!fontsLoaded) {
+    return null;
+  }
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <DarkMode.Provider
+      value={{
+        isDarkMode,
+        setIsDarkMode,
+        useDeviceSettings,
+        setUseDeviceSettings,
+      }}
+    >
+      <NavigationContainer theme={isDarkMode ? CustomDarkTheme : DefaultTheme}>
+        <StatusBar style={isDarkMode ? 'light' : 'dark'} />
+        <StackNavigator />
+      </NavigationContainer>
+    </DarkMode.Provider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
